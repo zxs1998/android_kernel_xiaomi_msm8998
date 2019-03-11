@@ -11,6 +11,7 @@
 #include <linux/input.h>
 #include <linux/kthread.h>
 #include <linux/slab.h>
+#include "../../kernel/sched/sched.h"
 
 /* Available bits for boost state */
 #define SCREEN_OFF		BIT(0)
@@ -36,6 +37,9 @@ static u32 get_boost_freq(struct boost_drv *b, u32 cpu)
 {
 	if (cpumask_test_cpu(cpu, cpu_lp_mask))
 		return CONFIG_INPUT_BOOST_FREQ_LP;
+
+	if (cpu_rq(cpu)->nr_running < 3)
+		return 0;
 
 	return CONFIG_INPUT_BOOST_FREQ_PERF;
 }
