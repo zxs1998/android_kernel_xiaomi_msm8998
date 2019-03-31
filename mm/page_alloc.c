@@ -62,6 +62,7 @@
 #include <linux/sched/rt.h>
 #include <linux/page_owner.h>
 #include <linux/kthread.h>
+#include <linux/simple_lmk.h>
 
 #include <asm/sections.h>
 #include <asm/tlbflush.h>
@@ -3137,7 +3138,10 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	unsigned long did_some_progress;
 	enum migrate_mode migration_mode = MIGRATE_ASYNC;
 	bool deferred_compaction = false;
-	int contended_compaction = COMPACT_CONTENDED_NONE;
+	int contended_compaction = COMPACT_CONTENDED_NONE;	
+#ifdef CONFIG_ANDROID_SIMPLE_LMK
+	bool started_slmk = false;
+#endif
 
 	/*
 	 * In the slowpath, we sanity check order to avoid ever trying to
@@ -3287,6 +3291,11 @@ retry:
 	if (gfp_mask & __GFP_NORETRY)
 		goto noretry;
 
+#ifdef CONFIG_ANDROID_SIMPLE_LMK
+	if (!cmpxchg(&started_slmk, false, true))
+		simple_lmk_start_reclaim();
+#endif
+
 	/* Keep reclaiming pages as long as there is reasonable progress */
 	pages_reclaimed += did_some_progress;
 	if ((did_some_progress && order <= PAGE_ALLOC_COSTLY_ORDER) ||
@@ -3320,6 +3329,10 @@ noretry:
 nopage:
 	warn_alloc_failed(gfp_mask, order, NULL);
 got_pg:
+#ifdef CONFIG_ANDROID_SIMPLE_LMK
+	if (started_slmk)
+		simple_lmk_stop_reclaim();
+#endif
 	return page;
 }
 
