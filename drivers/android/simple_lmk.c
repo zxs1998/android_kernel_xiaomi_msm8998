@@ -357,7 +357,8 @@ static int __init simple_lmk_init(void)
 	};
 	struct task_struct *thread;
 
-	thread = kthread_run(simple_lmk_reclaim_thread, NULL, "simple_lmkd");
+	thread = kthread_run_perf_critical(simple_lmk_reclaim_thread, NULL,
+					   "simple_lmkd");
 	if (IS_ERR(thread))
 		panic("Failed to start Simple LMK reclaim thread");
 
